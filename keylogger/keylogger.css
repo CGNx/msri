@@ -1,0 +1,31 @@
+* {
+	/* use Google Raleway Font */
+   font-family: 'Raleway', sans-serif;
+}
+
+h1 {  
+   font-size: x-large;
+   font-weight: 300;
+   text-align: center;
+}
+
+#textbox {
+	display: block;
+	margin-left: auto;
+	margin-right:auto;
+	width: 650px;
+	height: 400px;
+	font-family: Consolas,Menlo,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,monospace,serif;
+	background-color: #eee;
+	margin-bottom: 20px;
+}
+
+#output {
+	font-size: 14px;
+	overflow:auto;
+	margin-left: auto;
+	margin-right:auto;
+	width: 650px;
+	height: 200px;
+	border: 2px dashed gray;
+}
