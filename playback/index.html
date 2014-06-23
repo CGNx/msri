@@ -3,27 +3,38 @@
 
 <head>
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
-	<meta name="description" content="Keylogger example">
+	<meta name="description" content="Playback Keylogger">
 	<meta name="author" content="Curtis Northcutt">
-	<title>Keylogger Example</title>
+	<title>Keylogger Playback</title>
 	<link rel="shortcut icon" href="favicon.ico">
 
 	<!-- Load style sheets -->
-	<link rel="stylesheet" type="text/css" href="keylogger.css" />
+	<link rel="stylesheet" type="text/css" href="playback.css" />
 
 	<!-- Load any supplemental Javascript libraries here -->
 	<script type="text/javascript" src="jquery/jquery-1.9.0.min.js"></script>
+	<script src="ace-builds/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+	<script type="text/javascript" src="key_mappings.js"></script>
 
 	<!-- Load main javascript here -->
-	<script type="text/javascript" src="keylogger.js"></script>
+	<script type="text/javascript" src="playback.js"></script>
 </head>
 
 <body>
-	<h1> Key Logger Example using Javascript </h1>
-	<div id='textbox-wrapper'>
-		<textarea type='text' id='textbox' placeholder='Enter code here. Do not use an external IDE as we will be logging the characters you type to ensure you completed this assignment on your own.'></textarea>
-	</div>
-	<h1> Keys Pressed </h1>
+	<form>
+		<label for="language">Key Logger Playback Language: </label>
+		<select name="langauge" id="language-select">
+		  <option value="html">HTML</option>
+		  <option value="java">Java</option>
+		  <option value="c_cpp">C</option>
+		  <option value="csharp">C#</option>
+		</select>
+	</form>
+	
+	<div id='editor' class='playback'></div>
+	
+	<input contenteditable = 'true' type="button" id="replay-button" name="replay" value="Replay Code">
+	
 	<div id='output'> </div>
 
 
@@ -32,3 +43,6 @@
 	</script>
 </body>
 </html>
+
+
+<!--placeholder='Enter code here. Do not use an external IDE as we will be logging the characters you type to ensure you completed this assignment on your own.'>

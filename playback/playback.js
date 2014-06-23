@@ -1,131 +1,128 @@
+
 $(function() {
-	var keyboardMap = ["","","","CANCEL","","","HELP","","BACK_SPACE","TAB","","","CLEAR","ENTER","RETURN","","SHIFT","CONTROL","ALT","PAUSE","CAPS_LOCK","KANA","EISU","JUNJA","FINAL","HANJA","","ESCAPE","CONVERT","NONCONVERT","ACCEPT","MODECHANGE","SPACE","PAGE_UP","PAGE_DOWN","END","HOME","LEFT","UP","RIGHT","DOWN","SELECT","PRINT","EXECUTE","PRINTSCREEN","INSERT","DELETE","","0","1","2","3","4","5","6","7","8","9","COLON","SEMICOLON","LESS_THAN","EQUALS","GREATER_THAN","QUESTION_MARK","AT","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","WIN","","CONTEXT_MENU","","SLEEP","NUMPAD0","NUMPAD1","NUMPAD2","NUMPAD3","NUMPAD4","NUMPAD5","NUMPAD6","NUMPAD7","NUMPAD8","NUMPAD9","MULTIPLY","ADD","SEPARATOR","SUBTRACT","DECIMAL","DIVIDE","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13","F14","F15","F16","F17","F18","F19","F20","F21","F22","F23","F24","","","","","","","","","NUM_LOCK","SCROLL_LOCK","WIN_OEM_FJ_JISHO","WIN_OEM_FJ_MASSHOU","WIN_OEM_FJ_TOUROKU","WIN_OEM_FJ_LOYA","WIN_OEM_FJ_ROYA","","","","","","","","","","CIRCUMFLEX","EXCLAMATION","DOUBLE_QUOTE","HASH","DOLLAR","PERCENT","AMPERSAND","UNDERSCORE","OPEN_PAREN","CLOSE_PAREN","ASTERISK","PLUS","PIPE","HYPHEN_MINUS","OPEN_CURLY_BRACKET","CLOSE_CURLY_BRACKET","TILDE","","","","","VOLUME_MUTE","VOLUME_DOWN","VOLUME_UP","","","","","COMMA","","PERIOD","SLASH","BACK_QUOTE","","","","","","","","","","","","","","","","","","","","","","","","","","","OPEN_BRACKET","BACK_SLASH","CLOSE_BRACKET","QUOTE","","META","ALTGR","","WIN_ICO_HELP","WIN_ICO_00","","WIN_ICO_CLEAR","","","WIN_OEM_RESET","WIN_OEM_JUMP","WIN_OEM_PA1","WIN_OEM_PA2","WIN_OEM_PA3","WIN_OEM_WSCTRL","WIN_OEM_CUSEL","WIN_OEM_ATTN","WIN_OEM_FINISH","WIN_OEM_COPY","WIN_OEM_AUTO","WIN_OEM_ENLW","WIN_OEM_BACKTAB","ATTN","CRSEL","EXSEL","EREOF","PLAY","ZOOM","","PA1","WIN_OEM_CLEAR",""];
-	var prevKeyDown;
-	var allowHoldingKeys = true;
-	var GLOBAL_TEST_COUNT = 0;
 
-	if (allowHoldingKeys) {
-		//Resets the prevKeyDown if the key is lifted that way if the user types cc, both are caught.
-		$('#textbox-wrapper').keyup(
-	    function(e) {
-	    	if (e.keyCode == prevKeyDown) {
-	    		prevKeyDown = -1; //Set to impossible key value for update
-	    	}
-	    }
-		);
+	//Set up text editor
+	var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/monokai");
+    editor.getSession().setMode("ace/mode/html");
+  
+
+	var logs = [];
+	var events = [];
+
+	$('.ace_text-input').focus();
+	
+
+
+	
+	//Prints csv row to screen for testing purposes
+	//id is the string id for the output div
+	function printKeyPress(arr, id) {
+		var key = arr[1];
+		var keyPressed = key < keyboardMap.length?keyboardMap[key]:String.fromCharCode(key); 
+	        var line = '<b>Time</b>: ' + new Date(arr[0]) +
+	        		   ', <b>Key Code</b>: ' + key +
+	        		   ', <b>Key Value</b>: ' + keyPressed;
+	        $('#' + id).append(line+'<br>');
+	        $("#" + id).animate({
+		        scrollTop: $("#" + id)[0].scrollHeight
+		    }, 10);
 	}
 
-	//Wrapper around a textbox.
-	//This wrapper logs all keypresses and disables mouse events
-	//Assumes that events are automatically propogated to children.
-	//Uses capturing, not bubbling for event propagation.
-	document.getElementById('textbox-wrapper').addEventListener("keydown",
-	    function(e) {
-	    	key = e.keyCode;
-	    	if (key == 86) {
-	    		//86 is a paste event
+	function doUndo(){  
+	  document.execCommand('undo', false, null);  
+	}  
+	   
+	function doRedo(){  
+	  document.execCommand('redo', false, null);  
+	} 
 
-	    	} else if (key == 67) {
-	    		//67 is copy event
+	//Logs all keys into logs and events in events
+	function playback_handler(e) {
+    	key = e.keyCode;	    	
+	    switch(key) {
+		    case 33: //Page Up
+		        e.preventDefault();
+		        break;
+		    case 34: //Page Down
+		        e.preventDefault();
+		        break;
+		    case 86: //paste
+		    	break;
+		    case 67: //copy
+		    	break;
+		    case 88: //cut
+		    	break;
+		    default:			        
+		}
+	    	
+    	var logEntry = [e.timeStamp, key];  	
+    	printKeyPress(logEntry, 'output');
+    	logs.push(logEntry);
+    	events.push(e);
+    }
 
-	    	} else if (key == 88) {
-	    		//88 is cut event
-	    		
-	    	} else if (key == 33) {
-	    		//88 is cut event
-	    		return false;
-	    		
-	    	} else if (key == 34) {
-	    		//88 is cut event
-	    		return false;
-	    	}
-
-	    	if (allowHoldingKeys || !prevKeyDown != key) {
-	    		GLOBAL_TEST_COUNT = GLOBAL_TEST_COUNT + 1;
-		    	var keyPressed = key < keyboardMap.length?keyboardMap[key]:String.fromCharCode(key);
-		    	console.log(new Date(e.timeStamp)); 
-		        var line = '<b>Order</b>: ' + GLOBAL_TEST_COUNT +
-		        		   '<b>Time</b>: ' + e.timeStamp +
-		        		   ', <b>Key Pressed</b>: ' + keyPressed +
-		        		   ', <b>Key Code</b>: ' + key;
-		        $('#output').append(line+'<br>');
-		        $("#output").animate({
-			        scrollTop: $("#output")[0].scrollHeight
-			    }, 20);
-		        prevKeyDown = key;
-		    }
-	    }, true);
-
-	document.getElementById('textbox-wrapper').addEventListener(
-							'scroll',
-		function(e) {
-			//alert('hit')
-			e.preventDefault();
-			//e.stopPropagation();
-			e.returnValue = false;
-		}, true);
-
-	document.getElementById('textbox').addEventListener("keydown", function(e) {
-	    // space and arrow keys
-	    if([32, 33, 34, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
-	        e.preventDefault();
-	    }
-	}, false);
-
-	//Test Code to check that child can handle events seperate from wrapper
-	document.getElementById('textbox').addEventListener("keydown",
-	    function(e) {
-	    	key = e.keyCode;
-	    	if (key == 86) {
-	    		//86 is a paste event
-
-	    	} else if (key == 67) {
-	    		//67 is copy event
-
-	    	} else if (key == 88) {
-	    		//88 is cut event
-	    		
-	    	} else if (key == 33) {
-	    		//88 is cut event
-	    		$('#output').append('pageup'+'<br>');	 
-	    		$("#output").animate({
-			        scrollTop: $("#output")[0].scrollHeight
-			    }, 20);   		
-	    		return false;
-	    		
-	    	} else if (key == 34) {
-	    		//88 is cut event
-	    		$('#output').append('pagedown'+'<br>');
-	    		$("#output").animate({
-			        scrollTop: $("#output")[0].scrollHeight
-			    }, 20);
-			    return false;
-	    	}
-	    	GLOBAL_TEST_COUNT = GLOBAL_TEST_COUNT + 1;
-	        $('#output').append('order: ' + GLOBAL_TEST_COUNT + 'child handler hit.'+'<br>');
-	    }, false);
-
-	function paste_handler(e) {
-		$('#output').append('<span style="color:red; font-weight: bold"> Paste Detected!</span><br>');
+    //Outputs a message when paste, cut, or copy occurs.
+	function paste_cut_copy_handler(e) {
+		$('#output').append('<span style="color:red; font-weight: bold"> '+e.type+' detected!</span><br>');
 		$("#output").animate({
 		        scrollTop: $("#output")[0].scrollHeight
-		    }, 20);
-	}
-	function copy_handler(e) {
-		$('#output').append('<span style="color:red; font-weight: bold"> Copy Detected!</span><br>');
-		$("#output").animate({
-		        scrollTop: $("#output")[0].scrollHeight
-		    }, 20);
-	}
-	function cut_handler(e) {
-		$('#output').append('<span style="color:red; font-weight: bold"> Cut Detected!</span><br>');
-		$("#output").animate({
-		        scrollTop: $("#output")[0].scrollHeight
-		    }, 20);
+		    }, 5);
 	}
 
-	$('#textbox-wrapper').on('paste', paste_handler);
-	$('#textbox-wrapper').on('copy', copy_handler);
-	$('#textbox-wrapper').on('cut', cut_handler);
+	//Takes a saved user dispatched event and recreates the same event
+	function createEvent(evt) {
+		return jQuery.Event(evt.type, evt);
+	}
+
+	//Replays all events in the the event log
+	function replay(e) {
+
+		while(editor.session.getUndoManager().hasUndo()) {
+			editor.undo();
+		}
+
+        function loop() {
+        	editor.redo();
+        	if (editor.session.getUndoManager().hasRedo()) {
+                setTimeout(loop, 200);
+            }
+        }
+        loop();
+
+
+		/*$('.playback').off("keydown", playback_handler);
+		$('#output').html('Replaying code...');
+		while(events.length != 0) {
+			// Create a new jQuery.Event object with specified event properties.
+			var elbow = jQuery.Event( "keypress", { keyCode: 65 } );
+			// trigger an artificial keydown event with keyCode 64
+			$( ".playback" ).trigger( elbow );
+			var emo = $.Event('keypress');
+		    emo.which = 65; // Character 'A'`
+		    $('.playback').trigger(emo);
+			var evt = events.shift();
+			console.log(evt)
+			evt = createEvent(evt);
+			console.log(evt);
+			//document.getElementById('playback').dispatchEvent(evt);
+			var result = $('.playback').trigger(evt);
+			//var result = document.dispatchEvent(evt);
+			console.log(result);
+		}*/
+	}
+
+	function language_select_handler(e) {
+		console.log(this.value);
+    	editor.getSession().setMode("ace/mode/" + this.value);
+	}
+
+	$('.playback').on("keydown", playback_handler);
+	$('.playback').on('paste cut copy', paste_cut_copy_handler);
+	$('#replay-button').click(replay);
+	$('.playback').on('click drag dragend scroll', function(e) {
+		console.log(e);
+	});
+	$('#language-select').change(language_select_handler);
 
 })
