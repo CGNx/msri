@@ -33,7 +33,10 @@
 	
 	<div id='editor' class='playback'></div>
 	
-	<input contenteditable = 'true' type="button" id="replay-button" name="replay" value="Replay Code">
+	<div id='buttons'>
+		<input contenteditable = 'false' type="button" id="replay-button" name="replay" value="Replay Code from Undo Stack">
+		<input contenteditable = 'false' type="button" id="replay-logs" name="replay_logs" value="Replay Code from Logs">
+	</div>
 	
 	<div id='output'> </div>
 
