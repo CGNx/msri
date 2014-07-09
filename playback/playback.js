@@ -1,17 +1,22 @@
 
 $(function() {
 
+	//Global Parameters
 	var SPEED_UP_PLAYBACK_FACTOR = 2;
+	var ALLOW_EDITOR_AUTO_COMPLETE = false;
 
 	//Set up text editor
 	var editor = ace.edit("editor");
     editor.setTheme("ace/theme/monokai");
-    editor.getSession().setMode("ace/mode/html");  
+    editor.getSession().setMode("ace/mode/java");
+    editor.setBehavioursEnabled(ALLOW_EDITOR_AUTO_COMPLETE);
+    editor.getSession().setUseSoftTabs(true);
+    editor.focus();
 
 	var logs = [];
 	var handlers = true;
 
-	$('.ace_text-input').focus();
+	//$('.ace_text-input').focus();
 	
 	//Prints csv row to screen for testing purposes
 	//id is the string id for the output div
@@ -32,6 +37,19 @@ $(function() {
 	    }, 10);
 	}
 
+	//Swaps two elements of logs array at indices a and b.
+	//Maintain time ordering by swapping times as well
+	function swapLogs(index_a, index_b) {
+	    //Swap objects
+	    var temp = logs[index_a];
+	    logs[index_a] = logs[index_b];
+	    logs[index_b] = temp;
+
+	    //Reswap time fields
+	    logs[index_b].time = logs[index_a].time;
+	    logs[index_a].time = temp.time;
+	 }
+
 	//Logs all keys into logs and events in events
 	//Types of events:
 	//	Move
@@ -42,7 +60,6 @@ $(function() {
 	function keypress_handler(e) {
     	if (handlers) {
     		var key = e.which;
-	    	var type = e.type == 'click' ? 'click' : 'insert';
 	    	//var text = keyboardMap[key]==''?String.fromCharCode(key):keyboardMap[key]; 
 	    	var text = String.fromCharCode(key);
 		    switch(key) {
@@ -50,19 +67,9 @@ $(function() {
 			        text = '\n'; //String.fromCharCode fails for Enter key - manually add new line
 			        break;
 			        //editor.document.getNewLineCharacter();
-			    case 34: //Page Down
-			        e.preventDefault();
-			        break;
-			    case 86: //paste
-			    	break;
-			    case 67: //copy
-			    	break;
-			    case 88: //cut
-			    	break;
-			    default:			        
 			}
 		    	
-	    	var logEntry = {'type': type,
+	    	var logEntry = {'type': 'insert',
 	    					'time': e.timeStamp,
 	    					'keyCode': key,
 	    					'text': text,
@@ -77,41 +84,34 @@ $(function() {
     function keydown_handler(e) {
     	if (handlers) {
 	    	var key = e.which;
-	    	var type;
+	    	var type = 'remove';
+	    	var text = null;
+	    	var position = editor.selection.getCursor();
 	    	switch(key) {
-			    case 33: //Page Up
-			        e.preventDefault();
-			        break;
-			    case 8: //Backspace
-			    case 45: //Delete
-			    	type = 'remove';
-			    	var logEntry = {'type': type,
-							'time': e.timeStamp,
-							'keyCode': key,
-							'text': null,
-							'position': editor.selection.getCursor()}; 
-			    	printKeyPress(logEntry, 'output');
-			    	logs.push(logEntry);
-			    	break;
-			    case 37: //Arrow Left
-			        e.preventDefault();
-			        break;
-			    case 38: //Arrow Up
-			    	e.preventDefault();
-			    	break;
-			    case 39: //Arrow Right
-			    	e.preventDefault();
-			    	break;
-			    case 40: //Arrow Down
-			   		e.preventDefault();
-			    	break;
-			    default:			        
+			    case 9: //Tab
+			    	//numSpaces is the number of spaces to the next tab (e.g. if 'lol' was typed (3 characters),
+			    	//and a tab is four spaces, then numSpaces = 1)
+			        //var numSpaces = editor.session.getScreenTabSize(editor.getCursorPosition().column);
+			        //console.log('cursor position: ' + editor.getCursorPosition().column);
+			        //console.log('Tab spaces left: ' + numSpaces);
+			        //text = Array(numSpaces).join(' '); //String.fromCharCode fails for Tab key - manually add tab
+			        text = '\t';
+			        type = e.shiftKey ? 'outdent' : 'indent';
+			        position = editor.getSelectedText() == '' ? editor.selection.getCursor() : editor.getSelectionRange();
+			        break;	        
 			}
 
-			
+			//Keys: 8 is backspace, 46 is delete, 9 is tab
+			if ([8, 46, 9].indexOf(key) > -1) {
+		    	var logEntry = {'type': type,
+						'time': e.timeStamp,
+						'keyCode': key,
+						'text': text,
+						'position': position}; 
+		    	printKeyPress(logEntry, 'output');
+		    	logs.push(logEntry);
+		    }			
     	}
-    	
-
     }
 
     //Create a log event when selection changes (no log added if just cursor changes)
@@ -148,7 +148,7 @@ $(function() {
 	function paste_cut_copy_handler(e) {
 		if (handlers) {
 			var keyMap = {'copy':67,'cut':88,'paste':86};
-			var logEntry = {'type': e.type,
+			var logEntry = {'type': e.type == 'cut' ? 'remove' : e.type,
 							'time': e.timeStamp,
 							'keyCode': keyMap[e.type],
 							'text': e.originalEvent.clipboardData.getData('Text'),
@@ -174,8 +174,23 @@ $(function() {
         loop();
 	}
 
+
+	//Rearranges cursorMove events to occur after the delete or insert occurs.
+	//Swaps remove/indent events which are preceded by cursorMove events
+	//This way the cursor is moved after the remove occurs
+	//And the remove simply removes the highlighted portion.
+	function preprocessLogs() {
+		for (var i = 1; i < logs.length; i++) {
+			if ((['remove', 'paste', 'indent', 'outdent'].indexOf(logs[i].type) > -1 && logs[i-1].type == 'changeCursor')  ||
+			   (['indent', 'outdent','block_indent', 'block_outdent'].indexOf(logs[i].type) > -1 && logs[i-1].type == 'changeSelection')) {
+				swapLogs(i, i-1);
+			}
+		}
+	}
+
 	//Replays all events in the the event log
 	function replay_logs_handler(e) {
+		preprocessLogs();
 		//Turn off handlers
 		handlers = false;
 		console.log(logs);
@@ -194,23 +209,32 @@ $(function() {
     			//editor.moveCursorToPosition(log.position);
     			editor.insert(log.text);
     		} else if(log.type =='remove')  {
-    			if (index >  0) {
+    			if (index >  0 && logs[index - 1].type == 'changeSelection') {
+    				//editor.session.replace(editor.getSelectionRange(), '');
     				editor.session.replace(logs[index - 1].position, '');
+    				//editor.session.getDocument().remove(logs[index - 1].position);
     			}
-    			//delete|backspace single character
     		} else if(log.type == 'changeCursor') {
     			editor.moveCursorToPosition(log.position);
+    			editor.selection.clearSelection();
     		} else if(log.type == 'changeSelection') {
-    			if(typeof log.position == 'Range') {
-    				editor.selection.setSelectionRange(log.position);
-    			} else {
-    				editor.moveCursorToPosition(log.position);
-    			}
-    		}
+				editor.selection.setSelectionRange(log.position);
+				//editor.moveCursorToPosition(log.position);
+    		} else if(log.type == 'indent') {
+    			editor.indent();	
+    		} else if(log.type == 'outdent') {
+    			editor.blockOutdent();
+    		} /*else if(log.type == 'block_indent') {
+    			editor.blockIndent();	
+    		} else if(log.type == 'block_outdent') {
+    			editor.blockOutdent();
+    		}*/ else if(log.type == 'paste' && editor.getSelectedText() != log.text) { //FAILS bc CURSOR MOVES deleting selection
+    			editor.insert(log.text);	
+    		} 
 
         	if (index < logs.length - 1) {
         		index = index + 1;
-        		console.log(index);
+        		console.log(logs[index].type);
                 setTimeout(loop, (logs[index].time - log.time) / SPEED_UP_PLAYBACK_FACTOR);
             }        	
         }
@@ -222,7 +246,7 @@ $(function() {
 	}
 
 	//Attach event handlers
-	$('.playback').on("keypress", keypress_handler);
+	$('.playback textarea').on("keypress", keypress_handler);
 	$('.playback textarea').on("keydown", keydown_handler);
 	$('.playback').on('paste cut copy', paste_cut_copy_handler);
 	$('#replay-button').click(replay_from_undo_stack);
@@ -230,6 +254,23 @@ $(function() {
 	$('#language-select').change(language_select_handler);
 	editor.selection.on('changeSelection', change_selection_handler);
 	editor.selection.on('changeCursor', change_cursor_handler);
+	/*editor.getSession().on('change', function(e) {
+		if (handlers) {
+			var text = e.data.text;
+			console.log('b' + text + 'b');
+			if (text == ' ' || text == '  ' || text == '   ' || text == '    ') {
+				var logEntry = {'type': 'insert',
+								'time': e.timeStamp,
+								'keyCode': null,
+								'text': text,
+								'position': e.data.range.start}; 
+		    	printKeyPress(logEntry, 'output');
+		    	logs.push(logEntry);
+			}
+		    console.log(e.data.text);
+		    console.log(e);
+		}
+	});*/
 
 })
 
