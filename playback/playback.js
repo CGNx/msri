@@ -144,8 +144,9 @@ $(function() {
 	    }
 	}
 
-    //Outputs a message when paste, cut, or copy occurs.
-	function paste_cut_copy_handler(e) {
+    //Create a log event when cut, or copy occurs.
+	function cut_copy_handler(e) {
+		console.log(e);
 		if (handlers) {
 			var keyMap = {'copy':67,'cut':88,'paste':86};
 			var logEntry = {'type': e.type == 'cut' ? 'remove' : e.type,
@@ -153,6 +154,21 @@ $(function() {
 							'keyCode': keyMap[e.type],
 							'text': e.originalEvent.clipboardData.getData('Text'),
 							'position': editor.selection.getCursor()}; 
+			printKeyPress(logEntry, 'output');
+			logs.push(logEntry);
+		}
+	}
+
+	//Create a log event when paste occurs.
+	function paste_handler(e) {
+		console.log(e);
+		var position = editor.getSelectedText() == '' ? editor.selection.getCursor() : editor.getSelectionRange();
+		if (handlers) {
+			var logEntry = {'type': 'insert',
+							'time': $.now(),
+							'keyCode': 86,
+							'text': e.text,
+							'position': position}; 
 			printKeyPress(logEntry, 'output');
 			logs.push(logEntry);
 		}
@@ -181,7 +197,7 @@ $(function() {
 	//And the remove simply removes the highlighted portion.
 	function preprocessLogs() {
 		for (var i = 1; i < logs.length; i++) {
-			if ((['remove', 'paste', 'indent', 'outdent'].indexOf(logs[i].type) > -1 && logs[i-1].type == 'changeCursor')  ||
+			if ((['remove', 'indent', 'outdent'].indexOf(logs[i].type) > -1 && logs[i-1].type == 'changeCursor')  ||
 			   (['indent', 'outdent','block_indent', 'block_outdent'].indexOf(logs[i].type) > -1 && logs[i-1].type == 'changeSelection')) {
 				swapLogs(i, i-1);
 			}
@@ -193,7 +209,6 @@ $(function() {
 		preprocessLogs();
 		//Turn off handlers
 		handlers = false;
-		console.log(logs);
 		while(editor.session.getUndoManager().hasUndo()) {
 			editor.undo();
 		}
@@ -212,14 +227,12 @@ $(function() {
     			if (index >  0 && logs[index - 1].type == 'changeSelection') {
     				//editor.session.replace(editor.getSelectionRange(), '');
     				editor.session.replace(logs[index - 1].position, '');
-    				//editor.session.getDocument().remove(logs[index - 1].position);
     			}
     		} else if(log.type == 'changeCursor') {
     			editor.moveCursorToPosition(log.position);
     			editor.selection.clearSelection();
     		} else if(log.type == 'changeSelection') {
 				editor.selection.setSelectionRange(log.position);
-				//editor.moveCursorToPosition(log.position);
     		} else if(log.type == 'indent') {
     			editor.indent();	
     		} else if(log.type == 'outdent') {
@@ -229,7 +242,7 @@ $(function() {
     		} else if(log.type == 'block_outdent') {
     			editor.blockOutdent();
     		}*/ else if(log.type == 'paste' && editor.getSelectedText() != log.text) { //FAILS bc CURSOR MOVES deleting selection
-    			editor.insert(log.text);	
+    			editor.insert(log.text, true);	
     		} 
 
         	if (index < logs.length - 1) {
@@ -248,12 +261,13 @@ $(function() {
 	//Attach event handlers
 	$('.playback textarea').on("keypress", keypress_handler);
 	$('.playback textarea').on("keydown", keydown_handler);
-	$('.playback').on('paste cut copy', paste_cut_copy_handler);
+	$('.playback').on('cut copy', cut_copy_handler);
 	$('#replay-button').click(replay_from_undo_stack);
 	$('#replay-logs').click(replay_logs_handler);
 	$('#language-select').change(language_select_handler);
 	editor.selection.on('changeSelection', change_selection_handler);
 	editor.selection.on('changeCursor', change_cursor_handler);
+	editor.on('paste', paste_handler);
 	/*editor.getSession().on('change', function(e) {
 		if (handlers) {
 			var text = e.data.text;
@@ -271,6 +285,7 @@ $(function() {
 		    console.log(e);
 		}
 	});*/
+	//editor.getSession().on('change', function(e) {console.log(e)});
 
 })
 
