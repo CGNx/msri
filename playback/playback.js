@@ -39,6 +39,12 @@ $(function() {
 
 	//Adds a dictionary of the input variables to the log array object.
 	function addLog(type, time, code, text, pos) {
+		//Get cursor/selection position if no position provided
+		pos = pos !== undefined ? pos : 
+			  (editor.getSelectedText() == '' ? editor.selection.getCursor() : editor.getSelectionRange());
+
+		console.log(pos);
+		//Add log entry
 		var logEntry = {'type': type,
 						'time': time,
 						'keyCode': code,
@@ -97,7 +103,6 @@ $(function() {
 	    	var key = e.which;
 	    	var type = 'remove';
 	    	var text = null;
-	    	var position = editor.selection.getCursor();
 	    	switch(key) {
 			    case 9: //Tab
 			    	//numSpaces is the number of spaces to the next tab (e.g. if 'lol' was typed (3 characters),
@@ -108,7 +113,6 @@ $(function() {
 			        //text = Array(numSpaces).join(' '); //String.fromCharCode fails for Tab key - manually add tab
 			        text = '\t';
 			        type = e.shiftKey ? 'outdent' : 'indent';
-			        position = editor.getSelectedText() == '' ? editor.selection.getCursor() : editor.getSelectionRange();
 			        break;	        
 			}
 
@@ -141,22 +145,20 @@ $(function() {
 			var keyMap = {'copy':67,'cut':88,'paste':86};
 			var type = e.type == 'cut' ? 'remove' : e.type;
 			var text = e.originalEvent.clipboardData.getData('Text');
-			addLog(type, e.timeStamp, keyMap[e.type], text, editor.getCursorPosition());
+			addLog(type, e.timeStamp, keyMap[e.type], text);
 		}
 	}
 
 	//Create a log event when paste occurs.
 	function paste_handler(e) {
 		console.log(e);
-		var position = editor.getSelectedText() == '' ? editor.selection.getCursor() : editor.getSelectionRange();
 		if (handlers) {
-			var position = editor.getSelectedText() == '' ? editor.getCursorPosition() : editor.getSelectionRange();
-			addLog('insert', $.now(), 86, e.text, position);
+			addLog('insert', $.now(), 86, e.text);
 		}
 	}
 
 	//Replays all events in the the event log
-	function replay_from_undo_stack(e) {
+	/*function replay_from_undo_stack(e) {
 
 		while(editor.session.getUndoManager().hasUndo()) {
 			editor.undo();
@@ -169,7 +171,14 @@ $(function() {
             }
         }
         loop();
-	}
+	}*/
+
+	function double_speed() {
+		var doubleSpeed = SPEED_UP_PLAYBACK_FACTOR * 2;
+		var maxSpeed = 64;
+		SPEED_UP_PLAYBACK_FACTOR = doubleSpeed > maxSpeed ? maxSpeed : doubleSpeed;
+		$("#double-replay-speed").val('Double Speed: ' + SPEED_UP_PLAYBACK_FACTOR + 'x');
+	};
 
 
 	//Rearranges cursorMove events to occur after the delete or insert occurs.
@@ -187,44 +196,48 @@ $(function() {
 
 	//Replays all events in the the event log
 	function replay_logs_handler(e) {
-		preprocessLogs();
-		//Turn off handlers
-		handlers = false;
-		while(editor.session.getUndoManager().hasUndo()) {
-			editor.undo();
-		}
+		if (logs.length != 0) {
+			preprocessLogs();			
+			handlers = false; //Turn off handlers
+			editor.selectAll(); 
+			editor.remove(); //Clear editor for replay
 
-		var index = 0;
-        function loop() {
+			var index = 0;
+	        function loop() {
 
-        	var log = logs[index];
-        	
-    		if(log.type == 'insert') {
-    			editor.insert(log.text);
-    		} else if(log.type =='remove' && index >  0 && logs[index - 1].type == 'changeSelection')  {
-				//editor.session.replace(editor.getSelectionRange(), '');
-				editor.session.replace(logs[index - 1].position, '');
-			} else if(log.type == 'changeCursor') {
-    			editor.moveCursorToPosition(log.position);
-    			editor.selection.clearSelection();
-    		} else if(log.type == 'changeSelection') {
-				editor.selection.setSelectionRange(log.position);
-    		} else if(log.type == 'indent') {
-    			editor.indent();	
-    		} else if(log.type == 'outdent') {
-    			editor.blockOutdent();
-    		} else if(log.type == 'paste' && editor.getSelectedText() != log.text) {
-    			alert('hit');
-    			editor.insert(log.text, true);	
-    		} 
+	        	var log = logs[index];
+	        	
+	    		if(log.type == 'insert') {
+	    			editor.insert(log.text);
+	    		} else if(log.type =='remove' && index >  0 && logs[index - 1].type == 'changeSelection')  {
+					//editor.session.replace(editor.getSelectionRange(), '');
+					editor.session.replace(logs[index - 1].position, '');
+				} else if(log.type == 'changeCursor') {
+	    			editor.moveCursorToPosition(log.position);
+	    			editor.selection.clearSelection();
+	    		} else if(log.type == 'changeSelection') {
+					editor.selection.setSelectionRange(log.position);
+	    		} else if(log.type == 'indent') {
+	    			editor.indent();	
+	    		} else if(log.type == 'outdent') {
+	    			editor.blockOutdent();
+	    		} else if(log.type == 'paste' && editor.getSelectedText() != log.text) {
+	    			alert('hit');
+	    			editor.insert(log.text, true);	
+	    		} 
 
-        	if (index < logs.length - 1) {
-        		index = index + 1;
-        		console.log(logs[index].type);
-                setTimeout(loop, (logs[index].time - log.time) / SPEED_UP_PLAYBACK_FACTOR);
-            }        	
-        }
-        loop();
+	        	if (index < logs.length - 1) {
+	        		index = index + 1;
+	        		console.log(logs[index].type);
+	                setTimeout(loop, (logs[index].time - log.time) / SPEED_UP_PLAYBACK_FACTOR);
+	            } else  { //This code runs when the replay finishes
+	            	handlers = true; //Turn hanlders back on
+	            	SPEED_UP_PLAYBACK_FACTOR = 2; //Reset playback speed to double speed
+	            	$("#double-replay-speed").val('Double Speed: ' + SPEED_UP_PLAYBACK_FACTOR + 'x');
+	            }       	
+	        }
+	        loop();
+	    }
 	}
 
 	function language_select_handler(e) {
@@ -235,8 +248,8 @@ $(function() {
 	$('.playback textarea').on("keypress", keypress_handler);
 	$('.playback textarea').on("keydown", keydown_handler);
 	$('.playback').on('cut copy', cut_copy_handler);
-	$('#replay-button').click(replay_from_undo_stack);
 	$('#replay-logs').click(replay_logs_handler);
+	$('#double-replay-speed').click(double_speed);
 	$('#language-select').change(language_select_handler);
 	editor.selection.on('changeSelection', change_selection_handler);
 	editor.selection.on('changeCursor', change_cursor_handler);
