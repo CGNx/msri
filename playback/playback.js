@@ -43,7 +43,6 @@ $(function() {
 		pos = pos !== undefined ? pos : 
 			  (editor.getSelectedText() == '' ? editor.selection.getCursor() : editor.getSelectionRange());
 
-		console.log(pos);
 		//Add log entry
 		var logEntry = {'type': type,
 						'time': time,
@@ -139,21 +138,24 @@ $(function() {
 	}
 
     //Create a log event when cut, or copy occurs.
-	function cut_copy_handler(e) {
-		console.log(e);
+	function copy_handler(e) {
 		if (handlers) {
-			var keyMap = {'copy':67,'cut':88,'paste':86};
-			var type = e.type == 'cut' ? 'remove' : e.type;
 			var text = e.originalEvent.clipboardData.getData('Text');
-			addLog(type, e.timeStamp, keyMap[e.type], text);
+			addLog('copy', e.timeStamp, 67, text);
 		}
 	}
 
 	//Create a log event when paste occurs.
 	function paste_handler(e) {
-		console.log(e);
 		if (handlers) {
-			addLog('insert', $.now(), 86, e.text);
+			addLog('paste', $.now(), 86, e.text);
+		}
+	}
+
+	//Create a log event when cut occurs.
+	function cut_handler(e) {
+		if (handlers) {
+			addLog('cut', $.now(), 88, editor.getSelectedText(), e);
 		}
 	}
 
@@ -222,9 +224,11 @@ $(function() {
 	    		} else if(log.type == 'outdent') {
 	    			editor.blockOutdent();
 	    		} else if(log.type == 'paste' && editor.getSelectedText() != log.text) {
-	    			alert('hit');
 	    			editor.insert(log.text, true);	
-	    		} 
+	    		} else if(log.type == 'cut' && log.text != '') {
+	    			console.log(log);
+	    			editor.session.replace(log.position, '');
+	    		}
 
 	        	if (index < logs.length - 1) {
 	        		index = index + 1;
@@ -247,13 +251,14 @@ $(function() {
 	//Attach event handlers
 	$('.playback textarea').on("keypress", keypress_handler);
 	$('.playback textarea').on("keydown", keydown_handler);
-	$('.playback').on('cut copy', cut_copy_handler);
+	$('.playback').on('copy', copy_handler);
 	$('#replay-logs').click(replay_logs_handler);
 	$('#double-replay-speed').click(double_speed);
 	$('#language-select').change(language_select_handler);
 	editor.selection.on('changeSelection', change_selection_handler);
 	editor.selection.on('changeCursor', change_cursor_handler);
 	editor.on('paste', paste_handler);
+	editor.on('cut', cut_handler);
 
 })
 
