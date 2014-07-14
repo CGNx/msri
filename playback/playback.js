@@ -37,6 +37,17 @@ $(function() {
 	    }, 10);
 	}
 
+	//Adds a dictionary of the input variables to the log array object.
+	function addLog(type, time, code, text, pos) {
+		var logEntry = {'type': type,
+						'time': time,
+						'keyCode': code,
+						'text': text,
+						'position': pos}; 
+    	printKeyPress(logEntry, 'output');
+    	logs.push(logEntry);
+	}
+
 	//Swaps two elements of logs array at indices a and b.
 	//Maintain time ordering by swapping times as well
 	function swapLogs(index_a, index_b) {
@@ -103,29 +114,15 @@ $(function() {
 
 			//Keys: 8 is backspace, 46 is delete, 9 is tab
 			if ([8, 46, 9].indexOf(key) > -1) {
-		    	var logEntry = {'type': type,
-						'time': e.timeStamp,
-						'keyCode': key,
-						'text': text,
-						'position': position}; 
-		    	printKeyPress(logEntry, 'output');
-		    	logs.push(logEntry);
+				addLog(type, e.timeStamp, key, text, position);
 		    }			
     	}
     }
 
     //Create a log event when selection changes (no log added if just cursor changes)
     function change_selection_handler(e) {
-    	var selectedText = editor.getSelectedText();
-    	if (handlers && selectedText != '') {
-    		var selectedText = editor.getSelectedText();
-	    	var logEntry = {'type': e.type,
-							'time': $.now(),
-							'keyCode': null,
-							'text': selectedText,
-							'position': editor.getSelectionRange()}; 
-			printKeyPress(logEntry, 'output');
-			logs.push(logEntry);
+    	if (handlers && editor.getSelectedText() != '') {
+    		addLog(e.type, $.now(), null, editor.getSelectedText(), editor.getSelectionRange());
 	    }
 	}
 
@@ -133,14 +130,7 @@ $(function() {
 	function change_cursor_handler(e) {
 		var selectedText = editor.getSelectedText();
     	if (handlers && selectedText == '') {
-    		var selectedText = editor.getSelectedText();
-	    	var logEntry = {'type': e.type,
-							'time': $.now(),
-							'keyCode': null,
-							'text': selectedText,
-							'position': editor.getCursorPosition()}; 
-			printKeyPress(logEntry, 'output');
-			logs.push(logEntry);
+    		addLog(e.type, $.now(), null, editor.getSelectedText(), editor.getCursorPosition());
 	    }
 	}
 
@@ -149,13 +139,9 @@ $(function() {
 		console.log(e);
 		if (handlers) {
 			var keyMap = {'copy':67,'cut':88,'paste':86};
-			var logEntry = {'type': e.type == 'cut' ? 'remove' : e.type,
-							'time': e.timeStamp,
-							'keyCode': keyMap[e.type],
-							'text': e.originalEvent.clipboardData.getData('Text'),
-							'position': editor.selection.getCursor()}; 
-			printKeyPress(logEntry, 'output');
-			logs.push(logEntry);
+			var type = e.type == 'cut' ? 'remove' : e.type;
+			var text = e.originalEvent.clipboardData.getData('Text');
+			addLog(type, e.timeStamp, keyMap[e.type], text, editor.getCursorPosition());
 		}
 	}
 
@@ -164,13 +150,8 @@ $(function() {
 		console.log(e);
 		var position = editor.getSelectedText() == '' ? editor.selection.getCursor() : editor.getSelectionRange();
 		if (handlers) {
-			var logEntry = {'type': 'insert',
-							'time': $.now(),
-							'keyCode': 86,
-							'text': e.text,
-							'position': position}; 
-			printKeyPress(logEntry, 'output');
-			logs.push(logEntry);
+			var position = editor.getSelectedText() == '' ? editor.getCursorPosition() : editor.getSelectionRange();
+			addLog('insert', $.now(), 86, e.text, position);
 		}
 	}
 
@@ -218,17 +199,12 @@ $(function() {
 
         	var log = logs[index];
         	
-    		//editor.gotoLine(log.position.row + 1, log.position.column, false);
-    		//editor.moveCursorToPosition(log.position);
     		if(log.type == 'insert') {
-    			//editor.moveCursorToPosition(log.position);
     			editor.insert(log.text);
-    		} else if(log.type =='remove')  {
-    			if (index >  0 && logs[index - 1].type == 'changeSelection') {
-    				//editor.session.replace(editor.getSelectionRange(), '');
-    				editor.session.replace(logs[index - 1].position, '');
-    			}
-    		} else if(log.type == 'changeCursor') {
+    		} else if(log.type =='remove' && index >  0 && logs[index - 1].type == 'changeSelection')  {
+				//editor.session.replace(editor.getSelectionRange(), '');
+				editor.session.replace(logs[index - 1].position, '');
+			} else if(log.type == 'changeCursor') {
     			editor.moveCursorToPosition(log.position);
     			editor.selection.clearSelection();
     		} else if(log.type == 'changeSelection') {
@@ -237,11 +213,8 @@ $(function() {
     			editor.indent();	
     		} else if(log.type == 'outdent') {
     			editor.blockOutdent();
-    		} /*else if(log.type == 'block_indent') {
-    			editor.blockIndent();	
-    		} else if(log.type == 'block_outdent') {
-    			editor.blockOutdent();
-    		}*/ else if(log.type == 'paste' && editor.getSelectedText() != log.text) { //FAILS bc CURSOR MOVES deleting selection
+    		} else if(log.type == 'paste' && editor.getSelectedText() != log.text) {
+    			alert('hit');
     			editor.insert(log.text, true);	
     		} 
 
@@ -268,24 +241,6 @@ $(function() {
 	editor.selection.on('changeSelection', change_selection_handler);
 	editor.selection.on('changeCursor', change_cursor_handler);
 	editor.on('paste', paste_handler);
-	/*editor.getSession().on('change', function(e) {
-		if (handlers) {
-			var text = e.data.text;
-			console.log('b' + text + 'b');
-			if (text == ' ' || text == '  ' || text == '   ' || text == '    ') {
-				var logEntry = {'type': 'insert',
-								'time': e.timeStamp,
-								'keyCode': null,
-								'text': text,
-								'position': e.data.range.start}; 
-		    	printKeyPress(logEntry, 'output');
-		    	logs.push(logEntry);
-			}
-		    console.log(e.data.text);
-		    console.log(e);
-		}
-	});*/
-	//editor.getSession().on('change', function(e) {console.log(e)});
 
 })
 
@@ -373,3 +328,23 @@ $(function() {
 	}
 
 	*/
+
+
+	/*editor.getSession().on('change', function(e) {
+		if (handlers) {
+			var text = e.data.text;
+			console.log('b' + text + 'b');
+			if (text == ' ' || text == '  ' || text == '   ' || text == '    ') {
+				var logEntry = {'type': 'insert',
+								'time': e.timeStamp,
+								'keyCode': null,
+								'text': text,
+								'position': e.data.range.start}; 
+		    	printKeyPress(logEntry, 'output');
+		    	logs.push(logEntry);
+			}
+		    console.log(e.data.text);
+		    console.log(e);
+		}
+	});*/
+	//editor.getSession().on('change', function(e) {console.log(e)});
