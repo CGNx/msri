@@ -1,0 +1,17 @@
+var allCommands = ["showSettingsMenu", "goToNextError", "goToPreviousError", "selectall", "centerselection", "gotoline", 
+"fold", "unfold", "toggleFoldWidget", "toggleParentFoldWidget", "foldall", "foldOther", "unfoldall", 
+"findnext", "findprevious", "selectOrFindNext", "selectOrFindPrevious", "find", "overwrite", "selecttostart",
+"gotostart", "selectup", "golineup", "selecttoend", "gotoend", "selectdown", "golinedown", "selectwordleft",
+"gotowordleft", "selecttolinestart", "gotolinestart", "selectleft", "gotoleft", "selectwordright",
+"gotowordright", "selecttolineend", "gotolineend", "selectright", "gotoright", "selectpagedown",
+"pagedown", "gotopagedown", "selectpageup", "pageup", "gotopageup", "scrollup", "scrolldown",
+"selectlinestart", "selectlineend", "togglerecording", "replaymacro", "jumptomatching", "selecttomatching",
+"passKeysToBrowser", "cut", "removeline", "duplicateSelection", "sortlines", "togglecomment",
+"toggleBlockComment", "modifyNumberUp", "modifyNumberDown", "replace", "undo", "redo", "copylinesup",
+"movelinesup", "copylinesdown", "movelinesdown", "del", "backspace", "cut_or_delete", "removetolinestart",
+"removetolineend", "removewordleft", "removewordright", "outdent", "indent", "blockoutdent", "blockindent",
+"insertstring", "inserttext", "splitline", "transposeletters", "touppercase", "tolowercase", "expandtoline",
+"joinlines", "invertSelection", "addCursorAbove", "addCursorBelow", "addCursorAboveSkipCurrent",
+"addCursorBelowSkipCurrent", "selectMoreBefore", "selectMoreAfter", "selectNextBefore", "selectNextAfter",
+"splitIntoLines", "alignCursors", "findAll"];
+
