@@ -15,9 +15,12 @@ $(function() {
 
 	var logs = [];
 	var handlers = true;
-
-	//$('.ace_text-input').focus();
 	
+	function removeSpecialCommands(editor) {
+		var commands = Object.keys(editor.commands.commands);
+	}
+
+
 	//Prints csv row to screen for testing purposes
 	//id is the string id for the output div
 	function printKeyPress(log, id) {
@@ -112,12 +115,22 @@ $(function() {
 			        //text = Array(numSpaces).join(' '); //String.fromCharCode fails for Tab key - manually add tab
 			        text = '\t';
 			        type = e.shiftKey ? 'outdent' : 'indent';
-			        break;	        
+			        break;
+			    /*case 90: //Undo
+			    	e.preventDefault();
+			    	if (e.shiftKey === false) { //Will go to next case if shift+ctrl+z (redo)
+			    		type = 'undo';
+			    		break;
+			    	}
+			    case 89: //Redo
+			    	e.preventDefault();
+			    	type = 'redo';
+			    	break;*/	        
 			}
 
-			//Keys: 8 is backspace, 46 is delete, 9 is tab
-			if ([8, 46, 9].indexOf(key) > -1) {
-				addLog(type, e.timeStamp, key, text, position);
+			//Keys: 8 is backspace, 46 is delete, 9 is tab, 90 is undo, 89 is redo
+			if ([8, 46, 9/*, 89, 90*/].indexOf(key) > -1) {
+				addLog(type, e.timeStamp, key, text);
 		    }			
     	}
     }
@@ -199,7 +212,8 @@ $(function() {
 	//Replays all events in the the event log
 	function replay_logs_handler(e) {
 		if (logs.length != 0) {
-			preprocessLogs();			
+			preprocessLogs();	
+			console.log(logs);		
 			handlers = false; //Turn off handlers
 			editor.selectAll(); 
 			editor.remove(); //Clear editor for replay
@@ -210,6 +224,9 @@ $(function() {
 	        	var log = logs[index];
 	        	
 	    		if(log.type == 'insert') {
+	    			if (editor.getSelectionText == '') {
+	    				editor.moveCursorToPosition(log.position);
+	    			}
 	    			editor.insert(log.text);
 	    		} else if(log.type =='remove' && index >  0 && logs[index - 1].type == 'changeSelection')  {
 					//editor.session.replace(editor.getSelectionRange(), '');
@@ -228,6 +245,10 @@ $(function() {
 	    		} else if(log.type == 'cut' && log.text != '') {
 	    			console.log(log);
 	    			editor.session.replace(log.position, '');
+	    		} else if(log.type == 'undo') {
+	    			editor.undo();
+	    		} else if(log.type == 'redo') {
+	    			editor.redo();
 	    		}
 
 	        	if (index < logs.length - 1) {
@@ -259,6 +280,7 @@ $(function() {
 	editor.selection.on('changeCursor', change_cursor_handler);
 	editor.on('paste', paste_handler);
 	editor.on('cut', cut_handler);
+	//editor.on('change', function(e) {console.log(e)});
 
 })
 
