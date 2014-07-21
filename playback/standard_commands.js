@@ -15,3 +15,13 @@ var allCommands = ["showSettingsMenu", "goToNextError", "goToPreviousError", "se
 "addCursorBelowSkipCurrent", "selectMoreBefore", "selectMoreAfter", "selectNextBefore", "selectNextAfter",
 "splitIntoLines", "alignCursors", "findAll"];
 
+var standardCommands = ["goToNextError", "goToPreviousError", "selectall", "centerselection", "gotoline", 
+"findnext", "findprevious", "selectOrFindNext", "selectOrFindPrevious", "find", "selecttostart",
+"gotostart", "selectup", "golineup", "selecttoend", "gotoend", "selectdown", "golinedown", "selectwordleft",
+"gotowordleft", "selecttolinestart", "gotolinestart", "selectleft", "gotoleft", "selectwordright",
+"gotowordright", "selecttolineend", "gotolineend", "selectright", "gotoright", "selectpagedown",
+"pagedown", "gotopagedown", "selectpageup", "pageup", "gotopageup", "scrollup", "scrolldown",
+"selectlinestart", "selectlineend", "jumptomatching", "selecttomatching",
+"passKeysToBrowser", "cut", "removeline", "del", "backspace", "cut_or_delete", "outdent", "indent", "blockoutdent", "blockindent",
+"insertstring", "inserttext", "expandtoline", "selectNextBefore", "selectNextAfter"];
+

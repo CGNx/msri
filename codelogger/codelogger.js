@@ -1,4 +1,3 @@
-
 $(function() {
 
 	//Global Parameters
@@ -9,14 +8,6 @@ $(function() {
 	Array.prototype.diff = function(arr) {
 	    return this.filter(function(i) {return arr.indexOf(i) < 0;});
 	};
-
-	//Removes all Ace Editor commands which are not in the standardCommands array
-	function removeSpecialCommands(editor) {
-		var commands = Object.keys(editor.commands.commands);
-		var specialCommands = commands.diff(standardCommands);
-		editor.commands.removeCommands(specialCommands);
-	}
-
 
 	//Prints csv row to screen for testing purposes
 	//id is the string id for the output div
@@ -76,7 +67,6 @@ $(function() {
 	function keypress_handler(e) {
     	if (handlers) {
     		var key = e.which;
-	    	//var text = keyboardMap[key]==''?String.fromCharCode(key):keyboardMap[key]; 
 	    	var text = String.fromCharCode(key);
 		    switch(key) {
 			    case 13: //Enter press
@@ -267,7 +257,6 @@ $(function() {
 	}
 
 	function next_command_handler(e) {
-		//	alert('Executing command: ' + commands[commandIndex]);
 		console.log(commandIndex);
 		editor.execCommand(commands[commandIndex]);
 		commandIndex = (commandIndex + 1)%commands.length;
@@ -280,7 +269,6 @@ $(function() {
     editor.getSession().setMode("ace/mode/java");
     editor.setBehavioursEnabled(ALLOW_EDITOR_AUTO_COMPLETE);
     editor.getSession().setUseSoftTabs(true);
-    removeSpecialCommands(editor);
     editor.focus();
 
     //Tracking logs are stored here
