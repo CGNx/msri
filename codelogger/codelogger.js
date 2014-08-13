@@ -103,20 +103,20 @@ $(function() {
 			        text = '\t';
 			        type = e.shiftKey ? 'outdent' : 'indent';
 			        break;
-			    /*case 90: //Undo
-			    	e.preventDefault();
+			    case 90: //Undo
+			    	//e.preventDefault();
 			    	if (e.shiftKey === false) { //Will go to next case if shift+ctrl+z (redo)
 			    		type = 'undo';
 			    		break;
 			    	}
 			    case 89: //Redo
-			    	e.preventDefault();
+			    	//e.preventDefault();
 			    	type = 'redo';
-			    	break;*/	        
+			    	break;	        
 			}
 
 			//Keys: 8 is backspace, 46 is delete, 9 is tab, 90 is undo, 89 is redo
-			if ([8, 46, 9/*, 89, 90*/].indexOf(key) > -1) {
+			if ([8, 46, 9, 89, 90].indexOf(key) > -1) {
 				addLog(type, e.timeStamp, key, text);
 		    }			
     	}
@@ -135,6 +135,14 @@ $(function() {
     	if (handlers && selectedText == '') {
     		addLog(e.type, $.now(), null, editor.getSelectedText(), editor.getCursorPosition());
 	    }
+	}
+
+	//Create a log anytime any text is inserted or deleted or the state of the editor changes
+	function ace_change_handler(e) {
+		if (handlers) {
+			console.log(e);
+			addLog(e.data.action, $.now(), null, e.data.text, e.data.range);
+		}
 	}
 
     //Create a log event when cut, or copy occurs.
@@ -199,7 +207,7 @@ $(function() {
 	//Replays all events in the the event log
 	function replay_logs_handler(e) {
 		if (logs.length != 0) {
-			preprocessLogs();	
+			//preprocessLogs();	
 			console.log(logs);		
 			handlers = false; //Turn off handlers
 			editor.selectAll(); 
@@ -210,37 +218,23 @@ $(function() {
 
 	        	var log = logs[index];
 	        	
-	    		if(log.type == 'insert') {
-	    			if (editor.getSelectionText == '') {
-	    				editor.moveCursorToPosition(log.position);
-	    			}
+	    		if(log.type == 'insertText') {
 	    			editor.insert(log.text);
-	    		} else if(log.type =='remove' && index >  0 && logs[index - 1].type == 'changeSelection')  {
-					//editor.session.replace(editor.getSelectionRange(), '');
-					editor.session.replace(logs[index - 1].position, '');
+	    		} else if(log.type == 'insertLines') {
+	    			console.log(log);
+	    		} else if(log.type =='removeText')  {
+					//editor.session.replace(log.position, '');
+					editor.remove();
 				} else if(log.type == 'changeCursor') {
 	    			editor.moveCursorToPosition(log.position);
 	    			editor.selection.clearSelection();
 	    		} else if(log.type == 'changeSelection') {
 					editor.selection.setSelectionRange(log.position);
-	    		} else if(log.type == 'indent') {
-	    			editor.indent();	
-	    		} else if(log.type == 'outdent') {
-	    			editor.blockOutdent();
-	    		} else if(log.type == 'paste' && editor.getSelectedText() != log.text) {
-	    			editor.insert(log.text, true);	
-	    		} else if(log.type == 'cut' && log.text != '') {
-	    			console.log(log);
-	    			editor.session.replace(log.position, '');
-	    		} else if(log.type == 'undo') {
-	    			editor.undo();
-	    		} else if(log.type == 'redo') {
-	    			editor.redo();
-	    		}
+	    		} 
 
 	        	if (index < logs.length - 1) {
 	        		index = index + 1;
-	        		console.log(logs[index].type);
+	        		console.log(log.type);
 	                setTimeout(loop, (logs[index].time - log.time) / SPEED_UP_PLAYBACK_FACTOR);
 	            } else  { //This code runs when the replay finishes
 	            	handlers = true; //Turn hanlders back on
@@ -268,7 +262,7 @@ $(function() {
     editor.setTheme("ace/theme/monokai");
     editor.getSession().setMode("ace/mode/java");
     editor.setBehavioursEnabled(ALLOW_EDITOR_AUTO_COMPLETE);
-    editor.getSession().setUseSoftTabs(true);
+    //editor.getSession().setUseSoftTabs(true);
     editor.focus();
 
     //Tracking logs are stored here
@@ -291,94 +285,12 @@ $(function() {
 	editor.selection.on('changeCursor', change_cursor_handler);
 	editor.on('paste', paste_handler);
 	editor.on('cut', cut_handler);
-	//editor.on('change', function(e) {console.log(e)});
+	editor.on('change', ace_change_handler);
 
 })
 
 
 
-
-		/*$('.playback').off("keydown", playback_handler);
-		$('#output').html('Replaying code...');
-		while(events.length != 0) {
-			// Create a new jQuery.Event object with specified event properties.
-			var elbow = jQuery.Event( "keypress", { keyCode: 65 } );
-			// trigger an artificial keydown event with keyCode 64
-			$( ".playback" ).trigger( elbow );
-			var emo = $.Event('keypress');
-		    emo.which = 65; // Character 'A'`
-		    $('.playback').trigger(emo);
-			var evt = events.shift();
-			console.log(evt)
-			evt = createEvent(evt);
-			console.log(evt);
-			//document.getElementById('playback').dispatchEvent(evt);
-			var result = $('.playback').trigger(evt);
-			//var result = document.dispatchEvent(evt);
-			console.log(result);
-		}*/
-
-		/*$('.playback').on('click', function(e) {
-		// trigger an artificial keydown event with keyCode 64
-		var emo = $.Event('keypress');
-	    emo.which = 65; // Character 'A'`
-	    $('.playback').trigger(emo);
-	});*/
-
-
-
-/*
-//Adds a jquery function which finds the CursorPosition for a textarea element
-	$.fn.getCursorPosition = function() {
-	    var el = $(this).get(0);
-	    var pos = 0;
-	    var posEnd = 0;
-	    if('selectionStart' in el) {
-	        pos = el.selectionStart;
-	        posEnd = el.selectionEnd;
-	    } else if('selection' in document) {
-	        el.focus();
-	        var Sel = document.selection.createRange();
-	        var SelLength = document.selection.createRange().text.length;
-	        Sel.moveStart('character', -el.value.length);
-	        pos = Sel.text.length - SelLength;
-	        posEnd = Sel.text.length;
-	    }
-	    return [pos, posEnd];
-	};
-
-	//Determines the text deleted 
-	function getDeletedText(key, text, position) {
-	    var deleted = '';
-
-	    if (key == 8) {
-	        if (position[0] == position[1]) {
-	            if (position[0] == 0)
-	                deleted = '';
-	            else
-	                deleted = text.substr(position[0] - 1, 1);
-	        }
-	        else {
-	            deleted = text.substring(position[0], position[1]);
-	        }
-	    }
-	    else if (key == 46) {
-	        var text = $(this).val();
-	        if (position[0] == position[1]) {
-	            
-	            if (position[0] === text.length)
-	                deleted = '';
-	            else
-	                deleted = text.substr(position[0], 1);
-	        }
-	        else {
-	            deleted = text.substring(position[0], position[1]);
-	        }
-	    }
-	    return deleted;
-	}
-
-	*/
 
 
 	/*editor.getSession().on('change', function(e) {
